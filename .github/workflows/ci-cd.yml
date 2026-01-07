@@ -103,7 +103,7 @@ jobs:
           pm2 delete node-app || true
 
           # Start the application
-          pm2 start ./src/server.js --name node-app
+          pm2 start "npm start" --name node-app
 
           # Save PM2 process list
           pm2 save

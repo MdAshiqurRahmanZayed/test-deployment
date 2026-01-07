@@ -44,9 +44,74 @@ jobs:
 
   Deploy:
     name: Deploy to Self-Hosted Runner
-    needs: test
+    needs: Test
     runs-on: self-hosted
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download test results artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          path: ./artifacts
+
+      - name: Display artifact content
+        run: |
+          echo "=== Test Results from Artifact ==="
+          cat ./artifacts/test-results.txt
+          echo "=================================="
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install PM2 globally
+        run: npm install -g pm2
+
+      - name: Deploy application
+        run: |
+          # Stop existing application if running
+          pm2 delete node-app || true
+
+          # Start the application
+          pm2 start "npm start" --name node-app
+
+          # Save PM2 process list
+          pm2 save
+
+          # Display application status
+          pm2 status
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for application to start..."
+          sleep 5
+
+          # Check if application is running
+          if pm2 status | grep -q "node-app.*online"; then
+            echo "✓ Application deployed successfully!"
+            pm2 logs node-app --lines 10 --nostream
+          else
+            echo "✗ Application deployment failed!"
+            exit 1
+          fi
+
+      - name: Health check
+        run: |
+          echo "Running health check..."
+          for i in {1..5}; do
+            if curl -f http://localhost:3000/ > /dev/null 2>&1; then
+              echo "✓ Health check passed!"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 2
+          done
+          echo "✗ Health check failed after 5 attempts"
+          exit 1

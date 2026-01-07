@@ -41,3 +41,12 @@ jobs:
 
       - name: Check test status
         run: npm run check
+
+    deploy:
+      name: Deploy to Self-Hosted Runner
+      needs: test
+      runs-on: self-hosted
+
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4

@@ -41,8 +41,7 @@ jobs:
 
       - name: Check test status
         run: npm run check
-
-  Deploy:
+Deploy:
     name: Deploy to Self-Hosted Runner
     needs: Test
     runs-on: self-hosted
@@ -71,21 +70,22 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install PM2 globally
-        run: npm install -g pm2
+      - name: Verify PM2 installation
+        run: |
+          if ! command -v pm2 &> /dev/null; then
+            echo "ERROR: PM2 not found. Please install PM2 on the self-hosted runner."
+            echo "Run: npm install -g pm2"
+            exit 1
+          else
+            echo "✓ PM2 found:"
+            pm2 --version
+          fi
 
       - name: Deploy application
         run: |
-          # Stop existing application if running
           pm2 delete node-app || true
-
-          # Start the application
           pm2 start "npm start" --name node-app
-
-          # Save PM2 process list
           pm2 save
-
-          # Display application status
           pm2 status
 
       - name: Verify deployment
@@ -93,12 +93,12 @@ jobs:
           echo "Waiting for application to start..."
           sleep 5
 
-          # Check if application is running
           if pm2 status | grep -q "node-app.*online"; then
             echo "✓ Application deployed successfully!"
             pm2 logs node-app --lines 10 --nostream
           else
             echo "✗ Application deployment failed!"
+            pm2 logs node-app --lines 20 --nostream
             exit 1
           fi
 
@@ -114,4 +114,5 @@ jobs:
             sleep 2
           done
           echo "✗ Health check failed after 5 attempts"
+          pm2 logs node-app --lines 20 --nostream
           exit 1

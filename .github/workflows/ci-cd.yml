@@ -22,7 +22,7 @@ jobs:
           node-version: '22'
 
       - name: Display test results
-        run: cat test-results.txt
+        run: touch test-results.txt
 
       - name: Upload test results as artifact
         uses: actions/upload-artifact@v4
